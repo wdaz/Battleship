@@ -1,0 +1,8 @@
+__pycache__/
+# PyInstaller generated folders and files
+build/
+dist/
+*.spec
+# Databases
+*.db
+*.sqlite3
