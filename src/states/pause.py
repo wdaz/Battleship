@@ -41,6 +41,8 @@ class PauseState(BaseState):
 
     # ------------------------------------------------------------------
     def enter(self):
+        self.selected_index = 0
+        
         btn_x      = self._panel_rect.centerx - self._BTN_W // 2
         btn_y_start = self._panel_rect.y + self._PAD_TOP
 
@@ -82,11 +84,30 @@ class PauseState(BaseState):
 
     def handle_events(self, events):
         for event in events:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self._resume()
-                return
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self._resume()
+                    return
+                elif event.key == pygame.K_UP:
+                    self.selected_index = (self.selected_index - 1) % len(self._buttons)
+                elif event.key == pygame.K_DOWN:
+                    self.selected_index = (self.selected_index + 1) % len(self._buttons)
+                elif event.key == pygame.K_RETURN:
+                    if self._buttons[self.selected_index].on_click:
+                        self._buttons[self.selected_index].on_click()
+                    return
+
+            if event.type == pygame.MOUSEMOTION:
+                for i, btn in enumerate(self._buttons):
+                    if btn.rect.collidepoint(event.pos):
+                        self.selected_index = i
+
             for btn in self._buttons:
                 btn.handle_event(event)
+                
+        # Force hover visual to match the currently selected index
+        for i, btn in enumerate(self._buttons):
+            btn._hovered = (i == self.selected_index)
 
     # ── rendering ────────────────────────────────────────────────────────
 
