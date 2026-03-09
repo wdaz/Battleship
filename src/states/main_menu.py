@@ -80,20 +80,22 @@ class MainMenuState(BaseState):
         self._modal_user = None
         self._modal_rect = pygame.Rect(
             SCREEN_WIDTH // 2 - 230,
-            SCREEN_HEIGHT // 2 - 95,
+            SCREEN_HEIGHT // 2 - 115,
             460,
-            190,
+            230,
         )
-        btn_w, btn_h = 180, 42
-        y = self._modal_rect.bottom - btn_h - 22
+        btn_w, btn_h = 300, 42
+        btn_x = self._modal_rect.centerx - btn_w // 2
+        first_btn_y = self._modal_rect.y + 108
+        second_btn_y = first_btn_y + btn_h + 12
         self._continue_btn = Button(
-            rect=(self._modal_rect.x + 22, y, btn_w, btn_h),
+            rect=(btn_x, first_btn_y, btn_w, btn_h),
             text="Continue Last Game",
             font=self._font_btn,
             on_click=self._on_continue_choice,
         )
         self._new_game_btn = Button(
-            rect=(self._modal_rect.right - btn_w - 22, y, btn_w, btn_h),
+            rect=(btn_x, second_btn_y, btn_w, btn_h),
             text="Start New Game",
             font=self._font_btn,
             on_click=self._on_new_game_choice,
