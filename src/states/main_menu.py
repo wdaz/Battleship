@@ -2,7 +2,7 @@ import pygame
 from states.base_state import BaseState
 from utils.ui import Button, TextInput
 from core import database
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BG_COLOR
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, WHITE, BG_COLOR, DIFF_EASY, DIFF_MEDIUM, DIFF_HARD
 
 _SECTION_COLOR = (140, 175, 210)
 _HINT_OK       = ( 80, 200, 100)
@@ -31,6 +31,16 @@ class MainMenuState(BaseState):
         self._modal_rect = None
         self._continue_btn = None
         self._new_game_btn = None
+
+        self._modal_mode = None
+        self._modal_mode_rect = None
+        self._mode_static_btn = None
+        self._mode_dynamic_btn = None
+
+        self._modal_diff_rect = None
+        self._diff_easy_btn = None
+        self._diff_med_btn = None
+        self._diff_hard_btn = None
 
     # ------------------------------------------------------------------
     def enter(self):
@@ -101,32 +111,83 @@ class MainMenuState(BaseState):
             on_click=self._on_new_game_choice,
         )
 
+        # Modals rects
+        self._modal_mode_rect = pygame.Rect(SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 100, 400, 200)
+        self._modal_diff_rect = pygame.Rect(SCREEN_WIDTH // 2 - 200, SCREEN_HEIGHT // 2 - 130, 400, 260)
+        
+        md_btn_w, md_btn_h = 240, 40
+        md_btn_x = self._modal_mode_rect.centerx - md_btn_w // 2
+        self._mode_static_btn = Button(
+            rect=(md_btn_x, self._modal_mode_rect.y + 70, md_btn_w, md_btn_h),
+            text="Static Difficulty", font=self._font_btn, on_click=self._on_static_choice
+        )
+        self._mode_dynamic_btn = Button(
+            rect=(md_btn_x, self._modal_mode_rect.y + 70 + md_btn_h + 10, md_btn_w, md_btn_h),
+            text="Dynamic Difficulty", font=self._font_btn, on_click=self._on_dynamic_choice
+        )
+
+        df_btn_w, df_btn_h = 240, 40
+        df_btn_x = self._modal_diff_rect.centerx - df_btn_w // 2
+        dy = self._modal_diff_rect.y + 70
+        self._diff_easy_btn = Button(
+            rect=(df_btn_x, dy, df_btn_w, df_btn_h),
+            text="EASY", font=self._font_btn, on_click=lambda: self._start_game_with_diff(DIFF_EASY)
+        )
+        self._diff_med_btn = Button(
+            rect=(df_btn_x, dy + df_btn_h + 10, df_btn_w, df_btn_h),
+            text="MEDIUM", font=self._font_btn, on_click=lambda: self._start_game_with_diff(DIFF_MEDIUM)
+        )
+        self._diff_hard_btn = Button(
+            rect=(df_btn_x, dy + 2*(df_btn_h + 10), df_btn_w, df_btn_h),
+            text="HARD", font=self._font_btn, on_click=lambda: self._start_game_with_diff(DIFF_HARD)
+        )
+
     # ------------------------------------------------------------------
     def _on_start_click(self) -> None:
         name = self._text_input.value.strip()
         if 3 <= len(name) <= 30:
-            self._login(name, continue_saved=False)
+            database.upsert_user(name)
+            self._modal_user = name
+            self._modal_mode = "mode_choice"
 
     def _on_user_click(self, name: str) -> None:
+        self._modal_user = name
         if database.has_game_state(name):
-            self._modal_user = name
-            return
-        self._login(name, continue_saved=False)
+            self._modal_mode = "save_choice"
+        else:
+            self._modal_mode = "mode_choice"
 
     def _on_continue_choice(self) -> None:
         if not self._modal_user:
             return
-        self._login(self._modal_user, continue_saved=True)
+        self._login(self._modal_user, continue_saved=True, difficulty=DIFF_EASY)
 
     def _on_new_game_choice(self) -> None:
-        if not self._modal_user:
-            return
-        self._login(self._modal_user, continue_saved=False)
+        self._modal_mode = "mode_choice"
+
+    def _on_static_choice(self) -> None:
+        self._modal_mode = "diff_choice"
+
+    def _on_dynamic_choice(self) -> None:
+        if not self._modal_user: return
+        rating = database.get_user_rating(self._modal_user)
+        if rating < 0:
+            diff = DIFF_EASY
+        elif rating > 0:
+            diff = DIFF_HARD
+        else:
+            diff = DIFF_MEDIUM
+        self._start_game_with_diff(diff)
+
+    def _start_game_with_diff(self, diff: str) -> None:
+        if not self._modal_user: return
+        self._login(self._modal_user, continue_saved=False, difficulty=diff)
 
     def _close_modal(self) -> None:
         self._modal_user = None
+        self._modal_mode = None
 
-    def _login(self, name: str, continue_saved: bool) -> None:
+    def _login(self, name: str, continue_saved: bool, difficulty: str) -> None:
         database.upsert_user(name)
         self.engine.active_username = name
         self.engine.pending_game_snapshot = None
@@ -138,17 +199,28 @@ class MainMenuState(BaseState):
         else:
             database.delete_game_state(name)
             self._close_modal()
+            # We want to create the game here with the chosen difficulty before going to placement
+            self.engine.new_game(difficulty=difficulty)
             self.engine.state_manager.change("ship_placement")
 
     # ------------------------------------------------------------------
     def handle_events(self, events):
-        if self._modal_user:
+        if self._modal_user and self._modal_mode:
             for event in events:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     self._close_modal()
                     return
-                self._continue_btn.handle_event(event)
-                self._new_game_btn.handle_event(event)
+                # route to correct buttons based on mode
+                if self._modal_mode == "save_choice":
+                    self._continue_btn.handle_event(event)
+                    self._new_game_btn.handle_event(event)
+                elif self._modal_mode == "mode_choice":
+                    self._mode_static_btn.handle_event(event)
+                    self._mode_dynamic_btn.handle_event(event)
+                elif self._modal_mode == "diff_choice":
+                    self._diff_easy_btn.handle_event(event)
+                    self._diff_med_btn.handle_event(event)
+                    self._diff_hard_btn.handle_event(event)
             return
 
         for event in events:
@@ -226,34 +298,45 @@ class MainMenuState(BaseState):
             )
             screen.blit(msg, (right_cx - msg.get_width() // 2, 300))
 
-        if self._modal_user:
+        if self._modal_user and self._modal_mode:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill(_OVERLAY)
             screen.blit(overlay, (0, 0))
 
-            pygame.draw.rect(screen, _MODAL_BG, self._modal_rect, border_radius=10)
-            pygame.draw.rect(screen, _MODAL_BORDER, self._modal_rect, 2, border_radius=10)
+            if self._modal_mode == "save_choice":
+                r = self._modal_rect
+                pygame.draw.rect(screen, _MODAL_BG, r, border_radius=10)
+                pygame.draw.rect(screen, _MODAL_BORDER, r, 2, border_radius=10)
 
-            title = self._font_section.render(self._modal_user, True, WHITE)
-            message = self._font_label.render(
-                "Continue your last game or start a new one?",
-                True,
-                WHITE,
-            )
-            screen.blit(
-                title,
-                (
-                    self._modal_rect.centerx - title.get_width() // 2,
-                    self._modal_rect.y + 26,
-                ),
-            )
-            screen.blit(
-                message,
-                (
-                    self._modal_rect.centerx - message.get_width() // 2,
-                    self._modal_rect.y + 64,
-                ),
-            )
+                title = self._font_section.render(self._modal_user, True, WHITE)
+                message = self._font_label.render("Continue your last game or start a new one?", True, WHITE)
+                screen.blit(title, (r.centerx - title.get_width() // 2, r.y + 26))
+                screen.blit(message, (r.centerx - message.get_width() // 2, r.y + 64))
 
-            self._continue_btn.draw(screen)
-            self._new_game_btn.draw(screen)
+                self._continue_btn.draw(screen)
+                self._new_game_btn.draw(screen)
+
+            elif self._modal_mode == "mode_choice":
+                r = self._modal_mode_rect
+                pygame.draw.rect(screen, _MODAL_BG, r, border_radius=10)
+                pygame.draw.rect(screen, _MODAL_BORDER, r, 2, border_radius=10)
+                
+                title = self._font_section.render("Difficulty Mode", True, WHITE)
+                message = self._font_label.render("Choose how difficulty is determined", True, WHITE)
+                screen.blit(title, (r.centerx - title.get_width() // 2, r.y + 15))
+                screen.blit(message, (r.centerx - message.get_width() // 2, r.y + 45))
+
+                self._mode_static_btn.draw(screen)
+                self._mode_dynamic_btn.draw(screen)
+
+            elif self._modal_mode == "diff_choice":
+                r = self._modal_diff_rect
+                pygame.draw.rect(screen, _MODAL_BG, r, border_radius=10)
+                pygame.draw.rect(screen, _MODAL_BORDER, r, 2, border_radius=10)
+
+                title = self._font_section.render("Static Difficulty", True, WHITE)
+                screen.blit(title, (r.centerx - title.get_width() // 2, r.y + 20))
+
+                self._diff_easy_btn.draw(screen)
+                self._diff_med_btn.draw(screen)
+                self._diff_hard_btn.draw(screen)

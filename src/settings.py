@@ -18,3 +18,8 @@ RED = (220, 20, 60)
 GRAY = (200, 200, 200)
 GREEN = (0, 200, 0)
 BG_COLOR = (30, 30, 40)
+
+# Difficulty settings
+DIFF_EASY = "Easy"
+DIFF_MEDIUM = "Medium"
+DIFF_HARD = "Hard"

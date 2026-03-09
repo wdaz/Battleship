@@ -1,25 +1,34 @@
 import pygame
 from entities.board import Board
-from entities.enemy import SimpleAI
+from entities.ai import RandomAI, HuntTargetAI, ProbabilityAI
 from entities.ship import Ship
 from core.state_manager import StateManager
 from core.events import EventManager
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, DIFF_EASY, DIFF_MEDIUM, DIFF_HARD
 
+
+def _get_ai_from_diff(diff: str):
+    if diff == DIFF_HARD:
+        return ProbabilityAI()
+    elif diff == DIFF_MEDIUM:
+        return HuntTargetAI()
+    else:
+        return RandomAI()
 
 class Game:
     """Pure game-logic container (no rendering)."""
 
-    def __init__(self):
+    def __init__(self, difficulty=DIFF_EASY):
         self.player = Board()
         self.enemy = Board()
         self.player.place_all_ships()
         self.enemy.place_all_ships()
         self.turn = "player"
-        self.ai = SimpleAI()
+        self.difficulty = difficulty
+        self.ai = _get_ai_from_diff(difficulty)
 
     def enemy_move(self):
-        cell = self.ai.choose_move(self.player)
+        cell = self.ai.choose_attack(self.player)
         return self.player.receive_attack(cell)
 
 
@@ -55,8 +64,8 @@ class Engine:
         self.state_manager.register("game_over", GameOverState(self))
         self.state_manager.register("pause",     PauseState(self))
 
-    def new_game(self):
-        self.game = Game()
+    def new_game(self, difficulty=DIFF_EASY):
+        self.game = Game(difficulty=difficulty)
         self.game_over_winner = None
 
     @staticmethod
@@ -94,6 +103,7 @@ class Engine:
             "player": self._board_to_dict(self.game.player),
             "enemy": self._board_to_dict(self.game.enemy),
             "turn": self.game.turn,
+            "difficulty": self.game.difficulty,
         }
 
     def load_game_snapshot(self, snapshot: dict) -> bool:
@@ -104,7 +114,8 @@ class Engine:
             game.turn = snapshot.get("turn", "player")
             if game.turn not in {"player", "computer"}:
                 game.turn = "player"
-            game.ai = SimpleAI()
+            game.difficulty = snapshot.get("difficulty", DIFF_EASY)
+            game.ai = _get_ai_from_diff(game.difficulty)
         except (KeyError, TypeError, ValueError):
             return False
 

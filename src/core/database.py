@@ -20,10 +20,17 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT    NOT NULL UNIQUE,
-                last_played TEXT    NOT NULL DEFAULT (datetime('now'))
+                last_played TEXT    NOT NULL DEFAULT (datetime('now')),
+                rating      INTEGER NOT NULL DEFAULT 0
             )
             """
         )
+        # Try adding rating column for existing databases backwards compatibility
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN rating INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS game_states (
@@ -52,12 +59,28 @@ def upsert_user(name: str) -> None:
     with _connect() as conn:
         conn.execute(
             """
-            INSERT INTO users (name, last_played)
-            VALUES (?, datetime('now'))
+            INSERT INTO users (name, last_played, rating)
+            VALUES (?, datetime('now'), 0)
             ON CONFLICT(name) DO UPDATE SET last_played = datetime('now')
             """,
             (name,),
         )
+        conn.commit()
+
+
+def get_user_rating(name: str) -> int:
+    """Return the database rating for the user (default 0)."""
+    with _connect() as conn:
+        row = conn.execute("SELECT rating FROM users WHERE name = ?", (name,)).fetchone()
+    if row:
+        return row[0]
+    return 0
+
+
+def update_user_rating(name: str, delta: int) -> None:
+    """Apply a rating delta to an existing user."""
+    with _connect() as conn:
+        conn.execute("UPDATE users SET rating = rating + ? WHERE name = ?", (delta, name))
         conn.commit()
 
 

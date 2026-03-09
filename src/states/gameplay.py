@@ -14,6 +14,8 @@ class GameplayState(BaseState):
     def enter(self):
         snapshot = self.engine.pending_game_snapshot
         self.engine.pending_game_snapshot = None
+        self.enemy_move_scheduled = False
+        self.enemy_move_time = 0
 
         if snapshot and self.engine.load_game_snapshot(snapshot):
             return
@@ -27,18 +29,27 @@ class GameplayState(BaseState):
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.engine.state_manager.push("pause")
                 return
-            if event.type == pygame.MOUSEBUTTONDOWN and game.turn == "player":
+            if event.type == pygame.MOUSEBUTTONDOWN and game.turn == "player" and not self.enemy_move_scheduled:
                 cell = get_cell_from_mouse(event.pos, ENEMY_OFFSET)
                 if cell:
                     result = game.enemy.receive_attack(cell)
                     if result != "repeat":
                         if not game.enemy.all_sunk():
-                            game.enemy_move()
-                        if not game.player.all_sunk():
+                            game.turn = "computer"
+                            self.enemy_move_scheduled = True
+                            self.enemy_move_time = pygame.time.get_ticks() + 800  # 0.8s delay
+                        if not game.player.all_sunk() and not self.enemy_move_scheduled:
                             game.turn = "player"
 
     def update(self):
         game = self.engine.game
+        
+        if self.enemy_move_scheduled:
+            if pygame.time.get_ticks() >= self.enemy_move_time:
+                game.enemy_move()
+                self.enemy_move_scheduled = False
+                game.turn = "player"
+
         if game.enemy.all_sunk():
             self.engine.state_manager.change("game_over")
             self.engine.game_over_winner = "player"
