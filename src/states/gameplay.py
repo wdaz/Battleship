@@ -17,7 +17,9 @@ class GameplayState(BaseState):
 
         if snapshot and self.engine.load_game_snapshot(snapshot):
             return
-        self.engine.new_game()
+            
+        if not self.engine.game or self.engine.game_over_winner:
+            self.engine.new_game()
 
     def handle_events(self, events):
         game = self.engine.game

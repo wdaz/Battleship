@@ -47,8 +47,10 @@ class Engine:
         from states.gameplay import GameplayState
         from states.game_over import GameOverState
         from states.pause import PauseState
+        from states.ship_placement import ShipPlacementState
 
         self.state_manager.register("main_menu", MainMenuState(self))
+        self.state_manager.register("ship_placement", ShipPlacementState(self))
         self.state_manager.register("gameplay",  GameplayState(self))
         self.state_manager.register("game_over", GameOverState(self))
         self.state_manager.register("pause",     PauseState(self))

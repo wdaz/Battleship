@@ -133,11 +133,12 @@ class MainMenuState(BaseState):
 
         if continue_saved:
             self.engine.pending_game_snapshot = database.load_game_state(name)
+            self._close_modal()
+            self.engine.state_manager.change("gameplay")
         else:
             database.delete_game_state(name)
-
-        self._close_modal()
-        self.engine.state_manager.change("gameplay")
+            self._close_modal()
+            self.engine.state_manager.change("ship_placement")
 
     # ------------------------------------------------------------------
     def handle_events(self, events):
