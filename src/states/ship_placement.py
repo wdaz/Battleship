@@ -108,6 +108,8 @@ class ShipPlacementState(BaseState):
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
                     self.sys.drag_controller.rotate_ship()
+                elif event.key == pygame.K_ESCAPE:
+                    self.engine.state_manager.change("main_menu")
 
     def _handle_pickup(self, pos):
         # Check placed ships
@@ -205,6 +207,9 @@ class ShipPlacementState(BaseState):
         self.btn_auto.draw(screen)
         self.btn_reset.draw(screen)
         self.btn_start.draw(screen)
+
+        hint = pygame.font.SysFont(None, 24).render("ESC - Back", True, GRAY)
+        screen.blit(hint, (SCREEN_WIDTH - hint.get_width() - MARGIN, 14))
 
     def _draw_grid(self, screen, offset_x, label):
         # Draw label

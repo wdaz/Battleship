@@ -70,8 +70,12 @@ class PauseState(BaseState):
         self.engine.state_manager.pop()
 
     def _new_game(self):
-        # change() clears the stack, exits pause, and calls gameplay.enter() → new_game()
-        self.engine.state_manager.change("gameplay")
+        diff = getattr(self.engine, "selected_difficulty", "Easy")
+        if getattr(self.engine, "game", None):
+            diff = getattr(self.engine.game, "difficulty", diff)
+        
+        self.engine.new_game(difficulty=diff)
+        self.engine.state_manager.change("ship_placement")
 
     def _main_menu(self):
         username = self.engine.active_username

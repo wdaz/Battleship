@@ -51,11 +51,11 @@ class GameplayState(BaseState):
                 game.turn = "player"
 
         if game.enemy.all_sunk():
-            self.engine.state_manager.change("game_over")
             self.engine.game_over_winner = "player"
-        elif game.player.all_sunk():
             self.engine.state_manager.change("game_over")
+        elif game.player.all_sunk():
             self.engine.game_over_winner = "computer"
+            self.engine.state_manager.change("game_over")
 
     def draw(self, screen):
         game = self.engine.game
