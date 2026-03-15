@@ -74,4 +74,4 @@ For a detailed guide on how to play the game, game rules, and controls, please r
 
 - AI Collaboration - Guided by ChatGPT / Claude
 
-Developed with ❤️ by [Ruslan Hagverdi](https://github.com/wdaz)
+Developed with ❤️ by [Ruslan Hagverdi](https://www.linkedin.com/in/ruslan-hagverdi)
