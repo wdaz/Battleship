@@ -64,7 +64,7 @@ Inspired by the "Learn Prompt Engineering" course by **Zero To Mastery (ZTM)** t
 ## 📖 Documentation
 
 For a detailed guide on how to play the game, game rules, and controls, please refer to the:
-[👉 User Guide](https://github.com/wdaz/Battleship/blob/main/docs/USER_GUIDE.md)
+👉[User Guide](https://github.com/wdaz/Battleship/blob/main/docs/USER_GUIDE.md)
 
 ## 🛠️ Built With
 
