@@ -52,7 +52,7 @@ Inspired by the "Learn Prompt Engineering" course by **Zero To Mastery (ZTM)** t
 3. Install the required library:
 
    ```bash
-   python main.py
+    pip install pygame-ce==2.5.7
     ```
 
 4. Run the game:
